@@ -3,7 +3,7 @@
 print_help() {
 cat << EOF
 USAGE
-        $0 --node-ip <node-ip> [--node-name <node-name>] --username <username> --password <password> --ct-id <container_id> --ct-name <container_name> --ct-ip <container_ip> --ct-gw <container_gw> [--ct-dns <container_dns>] [--ct-bridge <container_bridge>] [--ct-os-template <container_os_template>]
+        $0 --node-ip <node-ip> [--node-name <node-name>] --username <username> --password <password> --ct-id <container_id> --ct-name <container_name> --ct-ip <container_ip> --ct-gw <container_gw> [--ct-dns <container_dns>] [--ct-bridge <container_bridge>] [--ct-os-template <container_os_template>] --ssh-pubkey <ssh-pubkey> --type <type>
 
 DESCRIPTION
         Créer un conteneur sur le node <node-name> en se connectant au noeud <node-ip>
@@ -26,8 +26,8 @@ DESCRIPTION
         --ct-name
                 Nom du conteneur
 
-        --ct-ip
-                IP du conteneur
+	--ct-ip
+                IP du conteneur. Ne pas oublier de spécifier le CIDR
 
         --ct-gw
                 Passerelle du conteneur
@@ -40,6 +40,13 @@ DESCRIPTION
 
         --ct-os-template (optionnel) [defaut: local:vztmpl/debian-11-standard_11.3-1_amd64.tar.zst]
                 OS template qui sera installé sur le conteneur
+	
+	--ssh-pubkey
+		La clé publique SSH qui permettra à Jenkins de se connecter au conteneur
+
+	--type, -t
+		Le type de conteneur
+		Liste des types : gcc, python, shell, docker
 EOF
 
 }
@@ -108,8 +115,30 @@ while [ $# -gt 0 ]; do
                         CONTAINER_OS_TEMPLATE=$2
                         shift
                         shift
+			;;
+		--ssh-pubkey)
+                        CONTAINER_SSH_PUBKEY=$2
+                        shift
+                        shift
+			;;
+		--type|-t)
+			CONTAINER_TYPE=$2
+			shift
+			shift
+			;;
+		*)
+			UNKNOWN_FLAG=$1
+			break
         esac
 done
+
+###CHECK UNKNWON FLAG
+
+if [ ! -z "$UNKNOWN_FLAG" ]; then
+	echo "Flag '$UNKNOWN_FLAG' inconnu"
+	exit 1
+fi
+
 
 
 ### CHECK CONNECTION INFOS
@@ -141,6 +170,14 @@ if [ -z "$CONTAINER_ID" ]; then
         exit 1
 fi
 
+if ! [[ "$CONTAINER_ID" =~ ^[0-9]+$ ]]; then
+	echo "L'ID du conteneur doit être un nombre"
+	exit 1
+fi
+
+exit 0
+
+
 if [ -z "$CONTAINER_NAME" ]; then
         echo "Vous devez spécifier le nom du conteneur"
         exit 1
@@ -168,6 +205,27 @@ if [ -z "$CONTAINER_OS_TEMPLATE" ]; then
         CONTAINER_OS_TEMPLATE="local:vztmpl/debian-11-standard_11.3-1_amd64.tar.zst"
 fi
 
+if [ -z "$CONTAINER_SSH_PUBKEY" ]; then
+        echo "Vous devez spécifier la clé publique SSH qui permettra la connexion au conteneur"
+        exit 1
+fi
+
+if [ -z "$CONTAINER_TYPE" ]; then
+	echo "Vous devez spécifier le type du conteneur"
+	exit 1
+fi
+
+
+if [ ! -f "types.d/${CONTAINER_TYPE}.sh" ]; then
+	echo "Type de conteneur inconnu"
+	exit 1
+fi
+
+
+##### CREATE TMP SSKKEY
+mkdir -p tmp/
+TMP_SSHKEY="tmp/tmp_${CONTAINER_ID}_rsa"
+ssh-keygen -t rsa -b 2048 -f $TMP_SSHKEY -q -N ""
 
 
 ##### GET COOKIE
@@ -184,8 +242,25 @@ curl --silent --insecure --data "username=$USERNAME&password=$PASSWORD" https://
 
 ##### CREATE LXC
 
-result=$(curl --silent --insecure --cookie "$(<cookie)" --header "$(<csrftoken)" -X POST --data-urlencode hostname="${CONTAINER_NAME}" --data-urlencode net0="name=eth0,bridge=${CONTAINER_BRIDGE},gw=${CONTAINER_GW},ip=${CONTAINER_IP}" --data-urlencode nameserver="${CONTAINER_DNS}" --data-urlencode ostemplate="${CONTAINER_OS_TEMPLATE}" --data vmid=${CONTAINER_ID} https://$APINODE:8006/api2/json/nodes/$TARGETNODE/lxc)
+result=$(curl --silent --insecure --cookie "$(<cookie)" --header "$(<csrftoken)" -X POST --data-urlencode hostname="${CONTAINER_NAME}" --data-urlencode net0="name=eth0,bridge=${CONTAINER_BRIDGE},gw=${CONTAINER_GW},ip=${CONTAINER_IP}" --data-urlencode nameserver="${CONTAINER_DNS}" --data-urlencode ostemplate="${CONTAINER_OS_TEMPLATE}" --data vmid=${CONTAINER_ID} --data-urlencode ssh-public-keys="${CONTAINER_SSH_PUBKEY}\n$(cat ${TMP_SSHKEY}.pub)" https://$APINODE:8006/api2/json/nodes/$TARGETNODE/lxc)
 
 echo "$result"
 
+result=$(curl --silent --insecure --cookie "$(<cookie)" --header "$(<csrftoken)" -X POST --data-urlencode node="$TARGETNODE" --data vmid=${CONTAINER_ID} https://$APINODE:8006/api2/json/nodes/$TARGETNODE/lxc/${CONTAINER_ID}/status/start)
+
+echo "$result"
+
+
+IP=$(echo "$CONTAINER_IP" | cut -d'/' -f1)
+echo "En attente du lancement du conteneur .."
+while ! ping -c 1 $IP &> /dev/null; do
+	sleep 1
+done
+
+scp -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" "types.d/${CONTAINER_TYPE}.sh" root@$IP:setup.sh
+ssh -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" root@$IP 'chmod 755 setup.sh; bash setup.sh; rm -f setup.sh'
+
+
+
 rm -f csrftoken cookie &> /dev/null
+rm -rf tmp &> /dev/null
