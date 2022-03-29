@@ -224,6 +224,7 @@ fi
 mkdir -p tmp/
 TMP_SSHKEY="tmp/tmp_${CONTAINER_ID}_rsa"
 ssh-keygen -t rsa -b 2048 -f $TMP_SSHKEY -q -N ""
+chmod 600 $TMP_SSHKEY
 
 
 ##### GET COOKIE
