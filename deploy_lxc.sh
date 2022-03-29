@@ -241,7 +241,10 @@ curl --silent --insecure --data "username=$USERNAME&password=$PASSWORD" https://
 
 ##### CREATE LXC
 
-result=$(curl --silent --insecure --cookie "$(<cookie)" --header "$(<csrftoken)" -X POST --data-urlencode hostname="${CONTAINER_NAME}" --data-urlencode net0="name=eth0,bridge=${CONTAINER_BRIDGE},gw=${CONTAINER_GW},ip=${CONTAINER_IP}" --data-urlencode nameserver="${CONTAINER_DNS}" --data-urlencode ostemplate="${CONTAINER_OS_TEMPLATE}" --data vmid=${CONTAINER_ID} --data-urlencode ssh-public-keys="${CONTAINER_SSH_PUBKEY}\n$(cat ${TMP_SSHKEY}.pub)" https://$APINODE:8006/api2/json/nodes/$TARGETNODE/lxc)
+result=$(curl --silent --insecure --cookie "$(<cookie)" --header "$(<csrftoken)" -X POST --data-urlencode hostname="${CONTAINER_NAME}" --data-urlencode net0="name=eth0,bridge=${CONTAINER_BRIDGE},gw=${CONTAINER_GW},ip=${CONTAINER_IP}" --data-urlencode nameserver="${CONTAINER_DNS}" --data-urlencode ostemplate="${CONTAINER_OS_TEMPLATE}" --data vmid=${CONTAINER_ID} --data-urlencode ssh-public-keys= \
+"${CONTAINER_SSH_PUBKEY}
+$(cat ${TMP_SSHKEY}.pub)" \
+	https://$APINODE:8006/api2/json/nodes/$TARGETNODE/lxc)
 
 echo "$result"
 
