@@ -255,6 +255,8 @@ while ! ping -c 1 $IP &> /dev/null; do
 	sleep 1
 done
 
+>/var/jenkins_home/.ssh/known_hosts
+
 scp -v -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" "types.d/${CONTAINER_TYPE}.sh" root@$IP:setup.sh
 ssh -v -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" root@$IP 'chmod 755 setup.sh; bash setup.sh; rm -f setup.sh'
 
