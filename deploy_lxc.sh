@@ -175,8 +175,6 @@ if ! [[ "$CONTAINER_ID" =~ ^[0-9]+$ ]]; then
 	exit 1
 fi
 
-exit 0
-
 
 if [ -z "$CONTAINER_NAME" ]; then
         echo "Vous devez spécifier le nom du conteneur"
