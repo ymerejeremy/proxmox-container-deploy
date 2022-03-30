@@ -300,6 +300,15 @@ ssh -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" root@$IP 'chmod 755 setup1.sh
 scp -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" "$AUTHORIZED_KEYS" root@$IP:.ssh/authorized_keys
 
 
+# RECUPERATION DU JAR CLI
+
+mkdir -p ~/bin
+
+if [ ! -f "~/bin/jenkins-cli.jar" ]; then
+	curl --silent http://localhost:8080/jnlpJars/jenkins-cli.jar -o ~/bin/jenkins-cli.jar
+	chmod 755 ~/bin/jenkins-cli.jar
+fi
+
 cat <<EOF | java -jar ~/bin/jenkins-cli.jar -s $JENKINS_URL create-node $CONTAINER_NAME
 <slave>
   <name>${CONTAINER_NAME}</name>
