@@ -302,7 +302,7 @@ cat <<EOF | java -jar ~/bin/jenkins-cli.jar -s http://localhost:8080/ -auth admi
   <mode>NORMAL</mode>
   <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
   <launcher class="hudson.plugins.sshslaves.SSHLauncher" plugin="ssh-slaves@1.5">
-    <host>${CONTAINER_IP}</host>
+    <host>$IP</host>
     <port>22</port>
     <credentialsId>${CONTAINER_CREDENTIALS}</credentialsId>
   </launcher>
