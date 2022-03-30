@@ -226,6 +226,14 @@ TMP_SSHKEY="tmp/tmp_${CONTAINER_ID}_rsa"
 ssh-keygen -t rsa -b 2048 -f $TMP_SSHKEY -q -N ""
 chmod 600 $TMP_SSHKEY
 
+AUTHORIZED_KEYS="tmp/authorized_keys"
+cat << EOF > $AUTHORIZED_KEYS
+# --- BEGIN PVE ---
+${CONTAINER_SSH_PUBKEY}
+# --- END PVE ---
+EOF
+
+
 
 ##### GET COOKIE
 
@@ -241,7 +249,7 @@ curl --silent --insecure --data "username=$USERNAME&password=$PASSWORD" https://
 
 ##### CREATE LXC
 
-result=$(curl --silent --insecure --cookie "$(<cookie)" --header "$(<csrftoken)" -X POST --data-urlencode hostname="${CONTAINER_NAME}" --data-urlencode net0="name=eth0,bridge=${CONTAINER_BRIDGE},gw=${CONTAINER_GW},ip=${CONTAINER_IP}" --data-urlencode nameserver="${CONTAINER_DNS}" --data-urlencode ostemplate="${CONTAINER_OS_TEMPLATE}" --data vmid=${CONTAINER_ID} https://$APINODE:8006/api2/json/nodes/$TARGETNODE/lxc) --data-urlencode $"ssh-public-keys=${CONTAINER_SSH_PUBKEY}\n$(cat ${TMP_SSHKEY}.pub)"
+result=$(curl --silent --insecure --cookie "$(<cookie)" --header "$(<csrftoken)" -X POST --data-urlencode hostname="${CONTAINER_NAME}" --data-urlencode net1="name=eth0,bridge=${CONTAINER_BRIDGE},gw=${CONTAINER_GW},ip=${CONTAINER_IP}" --data-urlencode nameserver="${CONTAINER_DNS}" --data-urlencode ostemplate="${CONTAINER_OS_TEMPLATE}" --data vmid=${CONTAINER_ID} https://$APINODE:8006/api2/json/nodes/$TARGETNODE/lxc --data-urlencode ssh-public-keys="$(cat ${TMP_SSHKEY}.pub)")
 
 echo "$result"
 
@@ -260,6 +268,7 @@ done
 
 scp -vvv -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" "types.d/${CONTAINER_TYPE}.sh" root@$IP:setup.sh
 ssh -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" root@$IP 'chmod 755 setup.sh; bash setup.sh; rm -f setup.sh'
+scp -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" "$AUTHORIZED_KEYS" root@$IP:.ssh/authorized_keys
 
 
 
