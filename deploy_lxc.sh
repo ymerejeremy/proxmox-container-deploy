@@ -266,7 +266,7 @@ done
 
 >/var/jenkins_home/.ssh/known_hosts
 
-scp -vvv -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" "types.d/${CONTAINER_TYPE}.sh" root@$IP:setup.sh
+scp -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" "types.d/${CONTAINER_TYPE}.sh" root@$IP:setup.sh
 ssh -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" root@$IP 'chmod 755 setup.sh; bash setup.sh; rm -f setup.sh'
 scp -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" "$AUTHORIZED_KEYS" root@$IP:.ssh/authorized_keys
 
