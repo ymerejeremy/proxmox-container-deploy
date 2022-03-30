@@ -3,14 +3,11 @@
 print_help() {
 cat << EOF
 USAGE
-        $0 --jk-url <jenkins_url> --node-ip <node-ip> [--node-name <node-name>] --username <username> --password <password> --ct-id <container_id> --ct-name <container_name> --ct-ip <container_ip> --ct-gw <container_gw> [--ct-dns <container_dns>] [--ct-bridge <container_bridge>] [--ct-os-template <container_os_template>] --ct-cred <container_credentials> --ssh-pubkey <ssh-pubkey> --type <type>
+        $0 --node-ip <node-ip> [--node-name <node-name>] --username <username> --password <password> --ct-id <container_id> --ct-name <container_name> --ct-ip <container_ip> --ct-gw <container_gw> [--ct-dns <container_dns>] [--ct-bridge <container_bridge>] [--ct-os-template <container_os_template>] --ct-cred <container_credentials> --ssh-pubkey <ssh-pubkey> --type <type>
 
 DESCRIPTION
         Créer un conteneur sur le node <node-name> en se connectant au noeud <node-ip>
 	
-	--jk-url
-		URL de Jenkins
-
         --node-ip
                 IP du noeud
 
@@ -67,11 +64,6 @@ while [ $# -gt 0 ]; do
         key=$1
 
         case $key in
-                --jk-url)
-                        JENKINS_URL=$2
-                        shift
-                        shift
-                        ;;
                 --node-ip)
                         APINODE=$2
                         shift
@@ -154,14 +146,6 @@ if [ ! -z "$UNKNOWN_FLAG" ]; then
 	echo "Flag '$UNKNOWN_FLAG' inconnu"
 	exit 1
 fi
-
-
-
-if [ -z "$JENKINS_URL" ]; then
-        echo "Vous devez spécifier l'url de Jenkins"
-        exit 1
-fi
-
 
 
 ### CHECK CONNECTION INFOS
