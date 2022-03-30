@@ -309,7 +309,7 @@ if [ ! -f "~/bin/jenkins-cli.jar" ]; then
 	chmod 755 ~/bin/jenkins-cli.jar
 fi
 
-cat <<EOF | java -jar ~/bin/jenkins-cli.jar -s $JENKINS_URL create-node $CONTAINER_NAME
+cat <<EOF | java -jar ~/bin/jenkins-cli.jar -s http://localhost:8080/ -i ~/.ssh/jenkins_master_rsa create-node $CONTAINER_NAME
 <slave>
   <name>${CONTAINER_NAME}</name>
   <description></description>
