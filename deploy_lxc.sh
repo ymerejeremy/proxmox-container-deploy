@@ -1,5 +1,7 @@
 #!/bin/bash
 
+### HELP FUNCTION
+
 print_help() {
 cat << EOF
 USAGE
@@ -53,6 +55,9 @@ DESCRIPTION
 EOF
 
 }
+
+
+### MANAGE ARGUMENTS
 
 if [ $# -eq 0 ]; then
         print_help
@@ -232,11 +237,15 @@ if [ -z "$CONTAINER_CREDENTIALS" ]; then
 fi
 
 
-##### CREATE TMP SSKKEY
+### CREATE TMP SSKKEY
+
 mkdir -p tmp/
 TMP_SSHKEY="tmp/tmp_${CONTAINER_ID}_rsa"
 ssh-keygen -t rsa -b 2048 -f $TMP_SSHKEY -q -N ""
 chmod 600 $TMP_SSHKEY
+
+
+### CREATE FINAL AUTHORIZED_KEYS FILE
 
 AUTHORIZED_KEYS="tmp/authorized_keys"
 cat << EOF > $AUTHORIZED_KEYS
@@ -247,19 +256,19 @@ EOF
 
 
 
-##### GET COOKIE
+### GET COOKIE
 
 curl --silent --insecure --data "username=$USERNAME&password=$PASSWORD" \
  https://$APINODE:8006/api2/json/access/ticket\
 | jq --raw-output '.data.ticket' | sed 's/^/PVEAuthCookie=/' > cookie
 
 
-##### GET CSRF TOKEN
+### GET CSRF TOKEN
 
 curl --silent --insecure --data "username=$USERNAME&password=$PASSWORD" https://$APINODE:8006/api2/json/access/ticket | jq --raw-output '.data.CSRFPreventionToken' | sed 's/^/CSRFPreventionToken:/' > csrftoken
 
 
-##### CREATE LXC
+### CREATE LXC
 
 result=$(curl --silent --insecure --cookie "$(<cookie)" --header "$(<csrftoken)" -X POST --data-urlencode hostname="${CONTAINER_NAME}" --data-urlencode net1="name=eth0,bridge=${CONTAINER_BRIDGE},gw=${CONTAINER_GW},ip=${CONTAINER_IP}" --data-urlencode nameserver="${CONTAINER_DNS}" --data-urlencode ostemplate="${CONTAINER_OS_TEMPLATE}" --data vmid=${CONTAINER_ID} https://$APINODE:8006/api2/json/nodes/$TARGETNODE/lxc --data-urlencode ssh-public-keys="$(cat ${TMP_SSHKEY}.pub)")
 
@@ -270,13 +279,21 @@ result=$(curl --silent --insecure --cookie "$(<cookie)" --header "$(<csrftoken)"
 echo "$result"
 
 
+### WAIT FOR CONTAINER TO START
+
 IP=$(echo "$CONTAINER_IP" | cut -d'/' -f1)
 echo "En attente du lancement du conteneur .."
 while ! ping -c 1 $IP &> /dev/null; do
 	sleep 1
 done
 
+
+### PREVENT ECDSA host key checking fail
+
 >/var/jenkins_home/.ssh/known_hosts
+
+
+### SETUP CONTAINER
 
 scp -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" "types.d/_.sh" root@$IP:setup1.sh
 scp -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" "types.d/${CONTAINER_TYPE}.sh" root@$IP:setup2.sh
@@ -284,7 +301,8 @@ ssh -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" root@$IP 'chmod 755 setup1.sh
 scp -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" "$AUTHORIZED_KEYS" root@$IP:.ssh/authorized_keys
 
 
-# RECUPERATION DU JAR CLI
+
+### GET JAR CLI FILE
 
 mkdir -p ~/bin
 
@@ -292,6 +310,9 @@ if [ ! -f "~/bin/jenkins-cli.jar" ]; then
 	curl --silent http://localhost:8080/jnlpJars/jenkins-cli.jar -o ~/bin/jenkins-cli.jar
 	chmod 755 ~/bin/jenkins-cli.jar
 fi
+
+
+### ADD NODE TO JENKINS
 
 cat <<EOF | java -jar ~/bin/jenkins-cli.jar -s http://localhost:8080/ -auth admin:password create-node $CONTAINER_NAME
 <slave>
@@ -312,6 +333,8 @@ cat <<EOF | java -jar ~/bin/jenkins-cli.jar -s http://localhost:8080/ -auth admi
 </slave>
 EOF
 
+
+### REMOVE TEMP FILES
 
 rm -f csrftoken cookie &> /dev/null
 rm -rf tmp &> /dev/null
