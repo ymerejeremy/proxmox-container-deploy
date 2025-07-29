@@ -270,11 +270,11 @@ curl --insecure --data "username=$USERNAME&password=$PASSWORD" https://$APINODE:
 
 ### CREATE LXC
 
-result=$(curl -v --insecure --cookie "$(<cookie)" --header "$(<csrftoken)" -X POST --data-urlencode hostname="${CONTAINER_NAME}" --data-urlencode net1="name=eth0,bridge=${CONTAINER_BRIDGE},gw=${CONTAINER_GW},ip=${CONTAINER_IP}" --data-urlencode nameserver="${CONTAINER_DNS}" --data-urlencode ostemplate="${CONTAINER_OS_TEMPLATE}" --data vmid=${CONTAINER_ID} https://$APINODE:8006/api2/json/nodes/$TARGETNODE/lxc --data-urlencode ssh-public-keys="$(cat ${TMP_SSHKEY}.pub)" --data cores=2 --data memory=2048 --data swap=2048)
+result=$(curl --insecure --cookie "$(<cookie)" --header "$(<csrftoken)" -X POST --data-urlencode hostname="${CONTAINER_NAME}" --data-urlencode net1="name=eth0,bridge=${CONTAINER_BRIDGE},gw=${CONTAINER_GW},ip=${CONTAINER_IP}" --data-urlencode nameserver="${CONTAINER_DNS}" --data-urlencode ostemplate="${CONTAINER_OS_TEMPLATE}" --data vmid=${CONTAINER_ID} https://$APINODE:8006/api2/json/nodes/$TARGETNODE/lxc --data-urlencode ssh-public-keys="$(cat ${TMP_SSHKEY}.pub)" --data cores=2 --data memory=2048 --data swap=2048)
 
 echo "$result"
 
-result=$(curl -v --insecure --cookie "$(<cookie)" --header "$(<csrftoken)" -X POST --data-urlencode node="$TARGETNODE" --data vmid=${CONTAINER_ID} https://$APINODE:8006/api2/json/nodes/$TARGETNODE/lxc/${CONTAINER_ID}/status/start)
+result=$(curl --insecure --cookie "$(<cookie)" --header "$(<csrftoken)" -X POST --data-urlencode node="$TARGETNODE" --data vmid=${CONTAINER_ID} https://$APINODE:8006/api2/json/nodes/$TARGETNODE/lxc/${CONTAINER_ID}/status/start)
 
 echo "$result"
 
