@@ -258,23 +258,23 @@ EOF
 
 ### GET COOKIE
 
-curl --silent --insecure --data "username=$USERNAME&password=$PASSWORD" \
+curl --insecure --data "username=$USERNAME&password=$PASSWORD" \
  https://$APINODE:8006/api2/json/access/ticket\
 | jq --raw-output '.data.ticket' | sed 's/^/PVEAuthCookie=/' > cookie
 
 
 ### GET CSRF TOKEN
 
-curl --silent --insecure --data "username=$USERNAME&password=$PASSWORD" https://$APINODE:8006/api2/json/access/ticket | jq --raw-output '.data.CSRFPreventionToken' | sed 's/^/CSRFPreventionToken:/' > csrftoken
+curl --insecure --data "username=$USERNAME&password=$PASSWORD" https://$APINODE:8006/api2/json/access/ticket | jq --raw-output '.data.CSRFPreventionToken' | sed 's/^/CSRFPreventionToken:/' > csrftoken
 
 
 ### CREATE LXC
 
-result=$(curl --silent --insecure --cookie "$(<cookie)" --header "$(<csrftoken)" -X POST --data-urlencode hostname="${CONTAINER_NAME}" --data-urlencode net1="name=eth0,bridge=${CONTAINER_BRIDGE},gw=${CONTAINER_GW},ip=${CONTAINER_IP}" --data-urlencode nameserver="${CONTAINER_DNS}" --data-urlencode ostemplate="${CONTAINER_OS_TEMPLATE}" --data vmid=${CONTAINER_ID} https://$APINODE:8006/api2/json/nodes/$TARGETNODE/lxc --data-urlencode ssh-public-keys="$(cat ${TMP_SSHKEY}.pub)")
+result=$(curl -v --insecure --cookie "$(<cookie)" --header "$(<csrftoken)" -X POST --data-urlencode hostname="${CONTAINER_NAME}" --data-urlencode net1="name=eth0,bridge=${CONTAINER_BRIDGE},gw=${CONTAINER_GW},ip=${CONTAINER_IP}" --data-urlencode nameserver="${CONTAINER_DNS}" --data-urlencode ostemplate="${CONTAINER_OS_TEMPLATE}" --data vmid=${CONTAINER_ID} https://$APINODE:8006/api2/json/nodes/$TARGETNODE/lxc --data-urlencode ssh-public-keys="$(cat ${TMP_SSHKEY}.pub)" --data cores=2 --data memory=2048 --data swap=2048)
 
 echo "$result"
 
-result=$(curl --silent --insecure --cookie "$(<cookie)" --header "$(<csrftoken)" -X POST --data-urlencode node="$TARGETNODE" --data vmid=${CONTAINER_ID} https://$APINODE:8006/api2/json/nodes/$TARGETNODE/lxc/${CONTAINER_ID}/status/start)
+result=$(curl -v --insecure --cookie "$(<cookie)" --header "$(<csrftoken)" -X POST --data-urlencode node="$TARGETNODE" --data vmid=${CONTAINER_ID} https://$APINODE:8006/api2/json/nodes/$TARGETNODE/lxc/${CONTAINER_ID}/status/start)
 
 echo "$result"
 
@@ -290,13 +290,21 @@ done
 
 ### PREVENT ECDSA host key checking fail
 
->/var/jenkins_home/.ssh/known_hosts
+# >/var/jenkins_home/.ssh/known_hosts
 
 
 ### SETUP CONTAINER
 
+echo "En attente du service SSH .."
+while ! ssh -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" root@$IP "sed -i 's/UsePAM yes/UsePAM no/g' /etc/ssh/sshd_config; systemctl restart ssh"; do
+	sleep 1
+done
+
+echo "copy base"
 scp -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" "types.d/_.sh" root@$IP:setup1.sh
+echo "copy ct type"
 scp -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" "types.d/${CONTAINER_TYPE}.sh" root@$IP:setup2.sh
+echo "setup"
 ssh -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" root@$IP 'chmod 755 setup1.sh; bash setup1.sh; rm -f setup1.sh; chmod 755 setup2.sh; bash setup2.sh; rm -f setup2.sh'
 scp -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" "$AUTHORIZED_KEYS" root@$IP:.ssh/authorized_keys
 
