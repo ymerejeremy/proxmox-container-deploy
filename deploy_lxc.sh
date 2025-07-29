@@ -300,46 +300,46 @@ while ! ssh -v -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" root@$IP "sed -i '
 	sleep 1
 done
 
-echo "copy base"
-scp -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" "types.d/_.sh" root@$IP:setup1.sh
-echo "copy ct type"
-scp -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" "types.d/${CONTAINER_TYPE}.sh" root@$IP:setup2.sh
-echo "setup"
-ssh -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" root@$IP 'chmod 755 setup1.sh; bash setup1.sh; rm -f setup1.sh; chmod 755 setup2.sh; bash setup2.sh; rm -f setup2.sh'
+# echo "copy base"
+# scp -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" "types.d/_.sh" root@$IP:setup1.sh
+# echo "copy ct type"
+# scp -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" "types.d/${CONTAINER_TYPE}.sh" root@$IP:setup2.sh
+# echo "setup"
+# ssh -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" root@$IP 'chmod 755 setup1.sh; bash setup1.sh; rm -f setup1.sh; chmod 755 setup2.sh; bash setup2.sh; rm -f setup2.sh'
 scp -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" "$AUTHORIZED_KEYS" root@$IP:.ssh/authorized_keys
 
 
 
-### GET JAR CLI FILE
-
-mkdir -p ~/bin
-
-if [ ! -f "~/bin/jenkins-cli.jar" ]; then
-	curl --silent http://localhost:8080/jnlpJars/jenkins-cli.jar -o ~/bin/jenkins-cli.jar
-	chmod 755 ~/bin/jenkins-cli.jar
-fi
-
-
-### ADD NODE TO JENKINS
-
-cat <<EOF | java -jar ~/bin/jenkins-cli.jar -s http://localhost:8080/ -auth admin:password create-node $CONTAINER_NAME
-<slave>
-  <name>${CONTAINER_NAME}</name>
-  <description></description>
-  <remoteFS>/root/slave/</remoteFS>
-  <numExecutors>1</numExecutors>
-  <mode>NORMAL</mode>
-  <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
-  <launcher class="hudson.plugins.sshslaves.SSHLauncher" plugin="ssh-slaves@1.5">
-    <host>$IP</host>
-    <port>22</port>
-    <credentialsId>${CONTAINER_CREDENTIALS}</credentialsId>
-  </launcher>
-  <label>${CONTAINER_TYPE}</label>
-  <nodeProperties/>
-  <userId>0</userId>
-</slave>
-EOF
+# ### GET JAR CLI FILE
+# 
+# mkdir -p ~/bin
+# 
+# if [ ! -f "~/bin/jenkins-cli.jar" ]; then
+# 	curl --silent http://localhost:8080/jnlpJars/jenkins-cli.jar -o ~/bin/jenkins-cli.jar
+# 	chmod 755 ~/bin/jenkins-cli.jar
+# fi
+# 
+# 
+# ### ADD NODE TO JENKINS
+# 
+# cat <<EOF | java -jar ~/bin/jenkins-cli.jar -s http://localhost:8080/ -auth admin:password create-node $CONTAINER_NAME
+# <slave>
+#   <name>${CONTAINER_NAME}</name>
+#   <description></description>
+#   <remoteFS>/root/slave/</remoteFS>
+#   <numExecutors>1</numExecutors>
+#   <mode>NORMAL</mode>
+#   <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
+#   <launcher class="hudson.plugins.sshslaves.SSHLauncher" plugin="ssh-slaves@1.5">
+#     <host>$IP</host>
+#     <port>22</port>
+#     <credentialsId>${CONTAINER_CREDENTIALS}</credentialsId>
+#   </launcher>
+#   <label>${CONTAINER_TYPE}</label>
+#   <nodeProperties/>
+#   <userId>0</userId>
+# </slave>
+# EOF
 
 
 ### REMOVE TEMP FILES
