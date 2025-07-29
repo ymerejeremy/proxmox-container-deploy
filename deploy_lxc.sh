@@ -296,7 +296,7 @@ done
 ### SETUP CONTAINER
 
 echo "En attente du service SSH .."
-while ! ssh -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" root@$IP "sed -i 's/UsePAM yes/UsePAM no/g' /etc/ssh/sshd_config; systemctl restart ssh"; do
+while ! ssh -v -i ${TMP_SSHKEY} -o "StrictHostKeyChecking=no" root@$IP "sed -i 's/UsePAM yes/UsePAM no/g' /etc/ssh/sshd_config; systemctl restart ssh"; do
 	sleep 1
 done
 
