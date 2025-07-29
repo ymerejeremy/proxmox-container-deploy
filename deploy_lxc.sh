@@ -281,11 +281,11 @@ echo "$result"
 
 ### WAIT FOR CONTAINER TO START
 
-IP=$(echo "$CONTAINER_IP" | cut -d'/' -f1)
-echo "En attente du lancement du conteneur .."
-while ! ping -c 1 $IP &> /dev/null; do
-	sleep 1
-done
+# IP=$(echo "$CONTAINER_IP" | cut -d'/' -f1)
+# echo "En attente du lancement du conteneur .."
+# while ! ping -c 1 $IP &> /dev/null; do
+# 	sleep 1
+# done
 
 
 ### PREVENT ECDSA host key checking fail
