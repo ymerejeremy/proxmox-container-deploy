@@ -23,12 +23,12 @@ DESCRIPTION
                 Mot de passe de l'utilisateur qui sera pris pour créer le conteneur
 
         --ct-id
-                ID du conteneur
+                ID du conteneur [default: between 20000 and 21000]
 
         --ct-name
                 Nom du conteneur
 
-	--ct-ip
+        --ct-ip
                 IP du conteneur. Ne pas oublier de spécifier le CIDR
 
         --ct-gw
@@ -177,15 +177,15 @@ fi
 
 ### CHECK CONTAINER INFOS
 
-if [ -z "$CONTAINER_ID" ]; then
-        echo "Vous devez spécifier l'ID du conteneur"
-        exit 1
-fi
+# if [ -z "$CONTAINER_ID" ]; then
+#         echo "Vous devez spécifier l'ID du conteneur"
+#         exit 1
+# fi
 
-if ! [[ "$CONTAINER_ID" =~ ^[0-9]+$ ]]; then
-	echo "L'ID du conteneur doit être un nombre"
-	exit 1
-fi
+# if ! [[ "$CONTAINER_ID" =~ ^[0-9]+$ ]]; then
+# 	echo "L'ID du conteneur doit être un nombre"
+# 	exit 1
+# fi
 
 
 if [ -z "$CONTAINER_NAME" ]; then
@@ -258,15 +258,31 @@ EOF
 
 ### GET COOKIE
 
-curl --insecure --data "username=$USERNAME&password=$PASSWORD" \
+curl --silent --insecure --data "username=$USERNAME&password=$PASSWORD" \
  https://$APINODE:8006/api2/json/access/ticket\
 | jq --raw-output '.data.ticket' | sed 's/^/PVEAuthCookie=/' > cookie
 
 
 ### GET CSRF TOKEN
 
-curl --insecure --data "username=$USERNAME&password=$PASSWORD" https://$APINODE:8006/api2/json/access/ticket | jq --raw-output '.data.CSRFPreventionToken' | sed 's/^/CSRFPreventionToken:/' > csrftoken
+curl --silent --insecure --data "username=$USERNAME&password=$PASSWORD" https://$APINODE:8006/api2/json/access/ticket | jq --raw-output '.data.CSRFPreventionToken' | sed 's/^/CSRFPreventionToken:/' > csrftoken
 
+
+if [ -z "$CONTAINER_ID" ]; then
+    MIN_ID=20000
+    MAX_ID=21000
+
+    result=$(curl --silent --insecure --cookie "$(<cookie)" --header "$(<csrftoken)" https://$APINODE:8006/api2/json/nodes/$TARGETNODE/lxc)
+    used_ids=$(echo "$result" | jq '.data[] | select(.type == "lxc" and .vmid >= '$MIN_ID' and .vmid <= '$MAX_ID') | .vmid')
+
+    echo $used_ids
+
+    CONTAINER_ID=$MIN_ID
+
+    while echo $used_ids | grep $ct_id &>/dev/null; do 
+        CONTAINER_ID=$(($ct_id + 1))
+    done
+fi
 
 ### CREATE LXC
 
