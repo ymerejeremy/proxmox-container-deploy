@@ -279,9 +279,11 @@ if [ -z "$CONTAINER_ID" ]; then
 
     CONTAINER_ID=$MIN_ID
 
-    while echo $used_ids | grep $ct_id &>/dev/null; do 
-        CONTAINER_ID=$(($ct_id + 1))
+    while echo $used_ids | grep $CONTAINER_ID; do 
+        CONTAINER_ID=$(($CONTAINER_ID + 1))
     done
+
+    echo "target id = $CONTAINER_ID"
 fi
 
 ### CREATE LXC
